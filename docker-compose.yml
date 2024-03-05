@@ -1,0 +1,37 @@
+version: '3.3'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: src/Dockerfile
+    restart: on-failure
+    env_file:
+      - src/.env
+    ports:
+      - 8000:8000
+    volumes:
+      - ./src/:/usr/src/
+    expose:
+      - 8000
+    depends_on:
+      - db
+  db:
+    image: postgres:15.1-alpine
+    restart: on-failure
+    environment:
+      - POSTGRES_USER=sber_tracker
+      - POSTGRES_PASSWORD=sber_tracker
+      - POSTGRES_DB=sber_tracker
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: pg_isready -U sber_tracker -d sber_tracker
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+volumes:
+  postgres_data:
