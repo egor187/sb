@@ -1,8 +1,8 @@
 import os
 import pytest
+from freezegun import freeze_time
+from sqlalchemy import insert
 from sqlalchemy.orm import Session
-
-import freezegun
 
 from db.models import Link
 from db.repositories.visited_links import VisitRepository
@@ -25,6 +25,8 @@ def repository():
 def mock_settings() -> None:
     settings.cache_clear()
     os.environ["ENVIRONMENT"] = "test"
+    os.environ["POSTGRES_HOST"] = "localhost"
+    os.environ["POSTGRES_PORT"] = "5433"
 
 
 @pytest.fixture(scope="session")
@@ -40,7 +42,7 @@ def db_engine(mock_settings):
     yield engine
 
     engine.dispose()
-    drop_database(settings().postgres_dsn)
+    # drop_database(settings().postgres_dsn)
 
 
 @pytest.fixture(scope="session")
@@ -64,26 +66,29 @@ def db_session(db_engine, apply_migrations):
 
 
 @pytest.fixture(scope="function")
-async def api_client(
+def api_client(
     db_session: Session
 ):
-    # app.dependency_overrides[get_db] = lambda: db_session
+    app.dependency_overrides[get_db] = lambda: db_session
 
     with TestClient(app=app, base_url="http://test") as client:
         yield client
 
 
-@freezegun.freeze_time("2024-03-01 12:00:00")
 @pytest.fixture
-def test_links(request, db_session):
-    links = request.node.get_closest_marker("links") or [
+def links(request, db_session):
+    links_marker = request.node.get_closest_marker("links")
+    links = links_marker.args[0] if links_marker else [
         "https://www.test.com",
         "https://www.test2.com",
         "https://www.test3.com",
     ]
-    db_session.bulk_save_objects(
-        [
-            Link(url=str(link)) for link in links
-        ]
-    )
-    db_session.commit()
+    created_at_marker = request.node.get_closest_marker("created_at")
+    created_at = created_at_marker.args[0] if created_at_marker else "2000-01-01"
+    with freeze_time(created_at):
+        db_session.execute(
+            insert(Link), [
+                {'url': link} for link in links
+            ]
+        )
+        db_session.commit()

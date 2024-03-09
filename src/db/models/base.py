@@ -1,9 +1,13 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, func, TIMESTAMP
+from sqlalchemy import DateTime
 from sqlalchemy.orm import declarative_base, Mapped, mapped_column
 
 BaseModel = declarative_base()
+
+
+def current_time():
+    return datetime.now()
 
 
 class IDMixin:
@@ -14,12 +18,12 @@ class IDMixin:
 class CreatedMixin:
     __abstract__ = True
 
-    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now())
 
 
 class UpdatedMixin:
     __abstract__ = True
 
     updated_at: Mapped[datetime] = mapped_column(
-        TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now()
+        DateTime, default=lambda: datetime.now(), onupdate=lambda: datetime.now()
     )

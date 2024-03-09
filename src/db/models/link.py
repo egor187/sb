@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Mapped, mapped_column
 
-from db.models.base import IDMixin, CreatedMixin, BaseModel
+from db.models.base import IDMixin, CreatedMixin, BaseModel, UpdatedMixin
 
 
 class Link(IDMixin, CreatedMixin, BaseModel):
